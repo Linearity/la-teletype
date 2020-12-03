@@ -60,13 +60,13 @@ scroll config pending lines
 A typing activity based on 'printer', plus an extra input signal for cues
 and an extra output signal for a scrolling offset vector.
 -}
-typing :: (Additive f, Num a, MonadFix m2) =>
+typing :: (Additive f, Num a, MonadFix m) =>
                 Int                                     -- ^ line width
                     -> String                           -- ^ pending text
                     -> [String]                         -- ^ lines already printed
                     -> Mode     (Time, b)
                                 ([String], f a)
-                                m2
+                                m
                                 (String, [String])      -- ^ the typing activity
 typing width pending lines = mapMode wrap (printer width pending lines)
     where wrap sf = arr fst >>> sf >>> arr (first (, zero))
@@ -75,13 +75,13 @@ typing width pending lines = mapMode wrap (printer width pending lines)
 Wait with a given output and a zero scrolling offset vector until
 a given reaction to the cue (second) input signal.
 -}
-waiting :: (Additive f, Num a1, Monad m) =>
-                (() -> t -> Event c)                    -- ^ a cue reaction
-                    -> a2                               -- ^ lines, or any output
-                    -> Mode (a3, t) (a2, f a1) m c      -- ^ the waiting activity
+waiting :: (Additive f, Num n, Monad m) =>
+                (c -> Event d)                          -- ^ a cue reaction
+                    -> b                                -- ^ lines, or any output
+                    -> Mode (a, c) (b, f n) m d         -- ^ the waiting activity
 waiting react lines = onlyUntil scroll
                         (always (constant (lines, zero)))
-    where scroll = arr (\((_interval, cue), _) -> react () cue)
+    where scroll = arr (\((_interval, cue), _) -> react cue)
 
 {-|
 Scroll lines as in Pokémon Red/Blue: offset by a constant half-line-height
