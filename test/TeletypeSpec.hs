@@ -30,9 +30,8 @@ specFill expected
             tt          = fill config "Computers are awful"
             config      = Config {  cRows       = 2,
                                     cTyping     = typing 9,
-                                    cWaiting    = waiting (\_ _ -> NoEvent),
-                                    cScrolling  = const (return ()),
-                                    cFinish     = const (return ())     }
+                                    cWaiting    = waiting (const NoEvent),
+                                    cScrolling  = const (return ())     }
 
 specPrinterLine :: [(DTime, String)] -> Spec
 specPrinterLine expected

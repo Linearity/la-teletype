@@ -18,9 +18,7 @@ data Config a b m
                 -- | activity between typing and scrolling, given lines already printed
                 cWaiting        :: [String] -> Mode a b m (),
                 -- | scrolling activity, given lines already printed
-                cScrolling      :: [String] -> Mode a b m (),
-                -- | final activity after all lines are printed
-                cFinish         :: [String] -> Mode a b m ()    }
+                cScrolling      :: [String] -> Mode a b m ()    }
 
 {-|
 Starting from nothing, print text until some number of lines are filled.
