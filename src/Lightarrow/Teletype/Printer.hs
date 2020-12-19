@@ -14,12 +14,12 @@ printer :: MonadFix m =>
             Int                                     -- ^ line width
                 -> String                           -- ^ pending text
                 -> [String]                         -- ^ lines already printed
-                -> Mode     Time
+                -> Task     Time
                             [String]
                             m
                             (String, [String])      -- ^ the line-printing activity
 printer width pending ts = lastOut [""]
-                                (mapMode (>>> arr addLine)
+                                (mapTask (>>> arr addLine)
                                     (printerLine width pending))
     where addLine = first (\t -> ts ++ [t])
 
@@ -31,7 +31,7 @@ When finished, return the remaining text.
 printerLine :: Monad m =>
                 Int                                 -- ^ line width
                     -> String                       -- ^ text
-                    -> Mode Time String m String    -- ^ the line-printing activity
+                    -> Task Time String m String    -- ^ the line-printing activity
 printerLine width fullText = nextWord (words fullText) width []
 
 {-|
@@ -44,7 +44,7 @@ nextWord :: Monad m =>
                 [String]                            -- ^ words
                     -> Int                          -- ^ line width
                     -> String                       -- ^ the line so far
-                    -> Mode Time String m String    -- ^ the line-printing activity
+                    -> Task Time String m String    -- ^ the line-printing activity
 nextWord [] _ _             = return []
 nextWord (w:ws) room prev
     | length w > room       = return (unwords (w:ws))
@@ -57,7 +57,7 @@ nextWord (w:ws) room prev
 nextGlyphLast :: Monad m =>
                     [a]                             -- ^ word
                         -> [a]                      -- ^ the line so far
-                        -> Mode Time [a] m [a]      -- ^ the word-printing activity
+                        -> Task Time [a] m [a]      -- ^ the word-printing activity
 nextGlyphLast [] prev       = pause prev
 nextGlyphLast (g:gs) prev   = do    text <- pause (prev ++ [g])
                                     nextGlyphLast gs text
@@ -66,7 +66,7 @@ nextGlyphLast (g:gs) prev   = do    text <- pause (prev ++ [g])
 nextGlyph :: Monad m =>
                     String                              -- ^ word
                         -> String                       -- ^ the line so far
-                        -> Mode Time String m String    -- ^ the word-printing activity
+                        -> Task Time String m String    -- ^ the word-printing activity
 nextGlyph [] prev           = pause (prev ++ " ")
 nextGlyph (g:gs) prev       = do    text <- pause (prev ++ [g])
                                     nextGlyph gs text
@@ -75,6 +75,6 @@ nextGlyph (g:gs) prev       = do    text <- pause (prev ++ [g])
 Between printing glyphs, wait with constant output for a interval given by
 the input signal.
 -}
-pause :: Monad m => b -> Mode Time b m b
+pause :: Monad m => b -> Task Time b m b
 pause text                  = onlyUntil (arr fst >>> afterInput text)
                                 (always (constant text))

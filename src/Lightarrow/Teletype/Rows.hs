@@ -14,11 +14,11 @@ data Config a b m
                 -- | typing activity, given pending text and lines already printed
                 cTyping         :: String
                                        -> [String]
-                                       -> Mode a b m (String, [String]),
+                                       -> Task a b m (String, [String]),
                 -- | activity between typing and scrolling, given lines already printed
-                cWaiting        :: [String] -> Mode a b m (),
+                cWaiting        :: [String] -> Task a b m (),
                 -- | scrolling activity, given lines already printed
-                cScrolling      :: [String] -> Mode a b m ()    }
+                cScrolling      :: [String] -> Task a b m ()    }
 
 {-|
 Starting from nothing, print text until some number of lines are filled.
@@ -27,7 +27,7 @@ When finished, return both the remaining text and the filled lines.
 fill :: Monad m =>
             Config a b m                            -- ^ configuration, incl. number of lines
                 -> String                           -- ^ text to be printed
-                -> Mode a b m (String, [String])    -- ^ the line-filling activity
+                -> Task a b m (String, [String])    -- ^ the line-filling activity
 fill config text = fillLoop 1 text []
     where   fillLoop _n "" lines   = return ("", lines)
             fillLoop n pending lines
@@ -46,7 +46,7 @@ scroll :: Monad m =>
             Config a b m                    -- ^ configuration
                 -> String                   -- ^ pending text
                 -> [String]                 -- ^ lines already printed
-                -> Mode a b m [String]      -- ^ the line-scrolling activity
+                -> Task a b m [String]      -- ^ the line-scrolling activity
 scroll _config "" lines  = return lines
 scroll config pending lines
     = do    cWaiting config lines
@@ -62,11 +62,11 @@ typing :: (Additive f, Num a, MonadFix m) =>
                 Int                                     -- ^ line width
                     -> String                           -- ^ pending text
                     -> [String]                         -- ^ lines already printed
-                    -> Mode     (Time, b)
+                    -> Task     (Time, b)
                                 ([String], f a)
                                 m
                                 (String, [String])      -- ^ the typing activity
-typing width pending lines = mapMode wrap (printer width pending lines)
+typing width pending lines = mapTask wrap (printer width pending lines)
     where wrap sf = arr fst >>> sf >>> arr (first (, zero))
 
 {-|
@@ -76,7 +76,7 @@ a given reaction to the cue (second) input signal.
 waiting :: (Additive f, Num n, Monad m) =>
                 (c -> Event d)                          -- ^ a cue reaction
                     -> b                                -- ^ lines, or any output
-                    -> Mode (a, c) (b, f n) m d         -- ^ the waiting activity
+                    -> Task (a, c) (b, f n) m d         -- ^ the waiting activity
 waiting react lines = onlyUntil scroll
                         (always (constant (lines, zero)))
     where scroll = arr (\((_interval, cue), _) -> react cue)
@@ -89,21 +89,21 @@ halfScrolling :: (Monad m, Fractional n) =>
                     DTime                               -- ^ scrolling interval
                         -> n                            -- ^ line height
                         -> b                            -- ^ lines, or any output
-                        -> Mode a (b, V2 n) m ()        -- ^ the scrolling activity
-halfScrolling interval lineheight lines
-    = over interval (constant (lines, V2 0 (-lineheight / 2)))
+                        -> Task a (b, V2 n) m ()        -- ^ the scrolling activity
+halfScrolling dt lineheight lines
+    = interval dt (constant (lines, V2 0 (-lineheight / 2)))
 
 -- | Scroll lines continuously through one line height during the scrolling interval.
 smoothScrolling :: Monad m =>
                     DTime                               -- ^ scrolling interval
                         -> Double                       -- ^ line height
                         -> b                            -- ^ lines, or any output
-                        -> Mode a (b, V2 Double) m ()   -- ^ the scrolling activity
-smoothScrolling interval lineheight lines
-    = over interval (time >>> arr (\t -> (lines, V2 0 (-lineheight * t / interval))))
+                        -> Task a (b, V2 Double) m ()   -- ^ the scrolling activity
+smoothScrolling dt lineheight lines
+    = interval dt (time >>> arr (\t -> (lines, V2 0 (-lineheight * t / dt))))
 
 -- | Output no lines for a certain interval
 breathing :: (Additive f, Monad m, Num c) =>
                 Time                            -- ^ interval
-                    -> Mode a ([b], f c) m ()   -- ^ the breathing activity
-breathing interval = over interval (constant ([], zero))
+                    -> Task a ([b], f c) m ()   -- ^ the breathing activity
+breathing dt = interval dt (constant ([], zero))
