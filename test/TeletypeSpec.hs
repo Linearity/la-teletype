@@ -26,7 +26,7 @@ specFill expected
             sf          = driver >>> typer
             dts         = repeat 0.016
             driver      = constant (0.5, NoEvent)
-            typer       = runMode tt (const (constant ([""], zero)))
+            typer       = runTask tt (const (constant ([""], zero)))
             tt          = fill config "Computers are awful"
             config      = Config {  cRows       = 2,
                                     cTyping     = typing 9,
@@ -43,5 +43,5 @@ specPrinterLine expected
             sf          = driver >>> typer
             dts         = repeat 0.016
             driver      = constant 0.5
-            typer       = runMode tt (const (constant ""))
+            typer       = runTask tt (const (constant ""))
             tt          = printerLine 11 "zygomorphic"
